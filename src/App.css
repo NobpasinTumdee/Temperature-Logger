@@ -1,0 +1,214 @@
+/* นำเข้าฟอนต์ Google Fonts ให้ดูทันสมัย */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Prompt', sans-serif;
+  background-color: #f0fdf4; /* สีเขียวอ่อนสุด สะอาดตา */
+  color: #1f2937;
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: #047857; /* เขียวเข้ม */
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Cards Section */
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 600px) {
+  .cards-container {
+    flex-direction: row;
+  }
+}
+
+.card {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* แต่งแถบสีด้านบนการ์ด */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+}
+
+.temp-card::before {
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.hum-card::before {
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+}
+
+.card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.card h3 {
+  font-size: 1.1rem;
+  color: #4b5563;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.value {
+  font-size: 3.5rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.temp-card .value {
+  color: #047857;
+}
+
+.hum-card .value {
+  color: #1d4ed8;
+}
+
+.value span {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.updated-time {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* Chart Section */
+.chart-section {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.chart-section h2 {
+  font-size: 1.2rem;
+  color: #374151;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 300px;
+}
+
+.loading, .no-data {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+  font-size: 1.1rem;
+}
+
+/* --- Animations --- */
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.2s;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ปรับแกนกราฟบนมือถือให้เล็กลงหน่อย */
+@media (max-width: 480px) {
+  .chart-wrapper {
+    height: 250px;
+    margin-left: -15px;
+  }
+  .value {
+    font-size: 3rem;
+  }
+}
