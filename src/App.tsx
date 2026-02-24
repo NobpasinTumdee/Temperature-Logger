@@ -126,73 +126,75 @@ function App() {
   const humStatus = getHumStatus(data.humidity);
 
   return (
-    <div className="main-container glass-panel fade-in-up">
-      <header className="header">
-        <h1>Smart Environment</h1>
-        <p>Real-time Monitoring System</p>
-      </header>
+    <div className='main'>
+      <div className="main-container glass-panel fade-in-up">
+        <header className="header">
+          <h1>Smart Environment</h1>
+          <p>Real-time Monitoring System</p>
+        </header>
 
-      <div className="cards-grid">
-        {/* Temperature Card */}
-        <div className="glass-card glass-panel fade-in-up delay-1">
-          <h3 className="card-title">🌡️ Temperature</h3>
-          <GlassDonutChart
-            value={data.temperature}
-            unit="°C"
-            color="var(--color-temp)"
-            type="temp"
-          />
-          <div className={`status-badge ${tempStatus.colorClass}`}>
-            {tempStatus.text}
+        <div className="cards-grid">
+          {/* Temperature Card */}
+          <div className="glass-card glass-panel fade-in-up delay-1">
+            <h3 className="card-title">🌡️ Temperature</h3>
+            <GlassDonutChart
+              value={data.temperature}
+              unit="°C"
+              color="var(--color-temp)"
+              type="temp"
+            />
+            <div className={`status-badge ${tempStatus.colorClass}`}>
+              {tempStatus.text}
+            </div>
+            <div className="updated-time">
+              Updated: {formatTime(data.updated_at)}
+            </div>
           </div>
-          <div className="updated-time">
-            Updated: {formatTime(data.updated_at)}
+
+          {/* Humidity Card */}
+          <div className="glass-card glass-panel fade-in-up delay-2">
+            <h3 className="card-title">💧 Humidity</h3>
+            <GlassDonutChart
+              value={data.humidity}
+              unit="%"
+              color="var(--color-hum)"
+              type="hum"
+            />
+            <div className={`status-badge ${humStatus.colorClass}`}>
+              {humStatus.text}
+            </div>
+            <div className="updated-time">
+              Updated: {formatTime(data.updated_at)}
+            </div>
           </div>
         </div>
 
-        {/* Humidity Card */}
-        <div className="glass-card glass-panel fade-in-up delay-2">
-          <h3 className="card-title">💧 Humidity</h3>
-          <GlassDonutChart
-            value={data.humidity}
-            unit="%"
-            color="var(--color-hum)"
-            type="hum"
-          />
-          <div className={`status-badge ${humStatus.colorClass}`}>
-            {humStatus.text}
+        {/* Hourly Chart Section */}
+        <div className="chart-section glass-panel fade-in-up delay-2">
+          <h2>Hourly Trends (24h)</h2>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={hourlyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.3)" />
+                <XAxis dataKey="created_at" tickFormatter={formatTime} stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="left" stroke="var(--color-temp)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 'auto']} />
+                <YAxis yAxisId="right" orientation="right" stroke="var(--color-hum)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                <Tooltip
+                  labelFormatter={(label) => formatTime(label as string)}
+                  contentStyle={{
+                    backgroundColor: 'var(--glass-bg)',
+                    backdropFilter: 'var(--backdrop-blur)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: 'var(--glass-shadow)'
+                  }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp (°C)" stroke="var(--color-temp)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-temp)', stroke: 'white' }} />
+                <Line yAxisId="right" type="monotone" dataKey="humidity" name="Humidity (%)" stroke="var(--color-hum)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-hum)', stroke: 'white' }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <div className="updated-time">
-            Updated: {formatTime(data.updated_at)}
-          </div>
-        </div>
-      </div>
-
-      {/* Hourly Chart Section */}
-      <div className="chart-section glass-panel fade-in-up delay-2">
-        <h2>Hourly Trends (24h)</h2>
-        <div className="chart-wrapper">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={hourlyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.3)" />
-              <XAxis dataKey="created_at" tickFormatter={formatTime} stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis yAxisId="left" stroke="var(--color-temp)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 'auto']} />
-              <YAxis yAxisId="right" orientation="right" stroke="var(--color-hum)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-              <Tooltip
-                labelFormatter={(label) => formatTime(label as string)}
-                contentStyle={{
-                  backgroundColor: 'var(--glass-bg)',
-                  backdropFilter: 'var(--backdrop-blur)',
-                  borderRadius: '12px',
-                  border: '1px solid var(--glass-border)',
-                  boxShadow: 'var(--glass-shadow)'
-                }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '10px' }} />
-              <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp (°C)" stroke="var(--color-temp)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-temp)', stroke: 'white' }} />
-              <Line yAxisId="right" type="monotone" dataKey="humidity" name="Humidity (%)" stroke="var(--color-hum)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-hum)', stroke: 'white' }} />
-            </LineChart>
-          </ResponsiveContainer>
         </div>
       </div>
     </div>
