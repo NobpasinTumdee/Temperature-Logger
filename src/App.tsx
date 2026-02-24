@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase/supabaseClient';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell
+} from 'recharts';
 import './App.css';
 
+// --- Interfaces ---
 interface SensorData {
   temperature: number;
   humidity: number;
@@ -15,6 +19,56 @@ interface HourlyData {
   humidity: number;
   created_at: string;
 }
+
+// --- Helper Functions for Status ---
+const getTempStatus = (temp: number) => {
+  if (temp < 18) return { text: 'เย็นเกินไป', colorClass: 'status-warning' };
+  if (temp > 32) return { text: 'ร้อนเกินไป!', colorClass: 'status-danger' };
+  return { text: 'ปกติ สบายๆ', colorClass: 'status-normal' };
+};
+
+const getHumStatus = (hum: number) => {
+  if (hum < 40) return { text: 'อากาศแห้ง', colorClass: 'status-warning' };
+  if (hum > 70) return { text: 'ชื้นเกินไป', colorClass: 'status-warning' };
+  return { text: 'ความชื้นเหมาะสม', colorClass: 'status-normal' };
+};
+
+// --- Donut Chart Component ---
+const GlassDonutChart = ({ value, unit, color }: { value: number, unit: string, color: string, type: 'temp' | 'hum' }) => {
+  const chartData = [
+    { name: 'Value', value: value },
+    { name: 'Empty', value: 100 - value },
+  ];
+  // สีของวงแหวนส่วนที่ "ว่างเปล่า" (สีขาวจางๆ โปร่งแสง)
+  const emptyColor = 'rgba(255, 255, 255, 0.2)';
+
+  return (
+    <div className="donut-container">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            innerRadius={70}
+            outerRadius={85}
+            startAngle={90}
+            endAngle={-270}
+            dataKey="value"
+            stroke="none"
+          >
+            <Cell key="cell-value" fill={color} style={{ filter: `drop-shadow(0 0 8px ${color}aa)` }} />
+            <Cell key="cell-empty" fill={emptyColor} />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="donut-inner-text">
+        <div className="donut-value" style={{ color: color }}>{value.toFixed(1)}</div>
+        <div className="donut-unit">{unit}</div>
+      </div>
+    </div>
+  );
+};
 
 function App() {
   const [data, setData] = useState<SensorData | null>(null);
@@ -32,133 +86,114 @@ function App() {
       if (currentData) setData(currentData);
       if (currentError) console.error("Error fetching current data:", currentError);
 
-      // 2. ดึงข้อมูลสถิติรายชั่วโมง (เอา 24 ชั่วโมงล่าสุด)
+      // 2. ดึงข้อมูลสถิติรายชั่วโมง (24 ชั่วโมงล่าสุด)
       const { data: logData, error: logError } = await supabase
         .from('hourly_log')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(24);
 
-      if (logData) {
-        // กลับด้าน Array เพื่อให้กราฟแสดงจากอดีต -> ปัจจุบัน (ซ้ายไปขวา)
-        setHourlyLogs(logData.reverse());
-      }
+      if (logData) setHourlyLogs(logData.reverse());
       if (logError) console.error("Error fetching hourly logs:", logError);
     };
 
     fetchData();
 
-    // เปิดช่องทางรับข้อมูล Realtime สำหรับค่าปัจจุบัน
+    // Realtime Subscription
     const channel = supabase
       .channel('realtime-status')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'current_status',
-          filter: 'id=eq.1'
-        },
-        (payload) => {
-          setData(payload.new as SensorData);
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'current_status', filter: 'id=eq.1' }, (payload) => {
+        setData(payload.new as SensorData);
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // ฟังก์ชันแปลงเวลาสำหรับแสดงในกราฟ
   const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  if (!data) {
+    return (
+      <div className="main-container glass-panel fade-in-up">
+        <div className="loading-container">กำลังเชื่อมต่อกับเซนเซอร์...</div>
+      </div>
+    );
+  }
+
+  const tempStatus = getTempStatus(data.temperature);
+  const humStatus = getHumStatus(data.humidity);
+
   return (
-    <div className="app-container">
-      <header className="header fade-in">
+    <div className="main-container glass-panel fade-in-up">
+      <header className="header">
         <h1>Smart Environment</h1>
-        <p>Real-time Monitor System</p>
+        <p>Real-time Monitoring System</p>
       </header>
 
-      {/* ส่วนแสดงค่าแบบ Real-time */}
-      {data ? (
-        <div className="cards-container fade-in-up">
-          <div className="card temp-card">
-            <div className="card-icon">🌡️</div>
-            <h3>Temperature</h3>
-            <div className="value">
-              {data.temperature.toFixed(1)} <span>°C</span>
-            </div>
-            <div className="updated-time">
-              อัปเดตล่าสุด: {new Date(data.updated_at).toLocaleTimeString()}
-            </div>
+      <div className="cards-grid">
+        {/* Temperature Card */}
+        <div className="glass-card glass-panel fade-in-up delay-1">
+          <h3 className="card-title">🌡️ Temperature</h3>
+          <GlassDonutChart
+            value={data.temperature}
+            unit="°C"
+            color="var(--color-temp)"
+            type="temp"
+          />
+          <div className={`status-badge ${tempStatus.colorClass}`}>
+            {tempStatus.text}
           </div>
-
-          <div className="card hum-card">
-            <div className="card-icon">💧</div>
-            <h3>Humidity</h3>
-            <div className="value">
-              {data.humidity.toFixed(1)} <span>%</span>
-            </div>
-            <div className="updated-time">
-              อัปเดตล่าสุด: {new Date(data.updated_at).toLocaleTimeString()}
-            </div>
+          <div className="updated-time">
+            Updated: {formatTime(data.updated_at)}
           </div>
         </div>
-      ) : (
-        <div className="loading pulse">กำลังโหลดข้อมูล...</div>
-      )}
 
-      {/* ส่วนแสดงกราฟรายชั่วโมง */}
-      <div className="chart-section fade-in-up delay-1">
-        <h2>Hourly Trends (24h)</h2>
-        {hourlyLogs.length > 0 ? (
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={hourlyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="created_at"
-                  tickFormatter={formatTime}
-                  stroke="#888"
-                  fontSize={12}
-                />
-                <YAxis yAxisId="left" stroke="#10b981" fontSize={12} />
-                <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" fontSize={12} />
-                <Tooltip
-                  labelFormatter={(label) => formatTime(label as string)}
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="temperature"
-                  name="Temp (°C)"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#10b981' }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="humidity"
-                  name="Humidity (%)"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#3b82f6' }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        {/* Humidity Card */}
+        <div className="glass-card glass-panel fade-in-up delay-2">
+          <h3 className="card-title">💧 Humidity</h3>
+          <GlassDonutChart
+            value={data.humidity}
+            unit="%"
+            color="var(--color-hum)"
+            type="hum"
+          />
+          <div className={`status-badge ${humStatus.colorClass}`}>
+            {humStatus.text}
           </div>
-        ) : (
-          <p className="no-data">ยังไม่มีข้อมูลรายชั่วโมง</p>
-        )}
+          <div className="updated-time">
+            Updated: {formatTime(data.updated_at)}
+          </div>
+        </div>
+      </div>
+
+      {/* Hourly Chart Section */}
+      <div className="chart-section glass-panel fade-in-up delay-2">
+        <h2>Hourly Trends (24h)</h2>
+        <div className="chart-wrapper">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={hourlyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.3)" />
+              <XAxis dataKey="created_at" tickFormatter={formatTime} stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" stroke="var(--color-temp)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 'auto']} />
+              <YAxis yAxisId="right" orientation="right" stroke="var(--color-hum)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+              <Tooltip
+                labelFormatter={(label) => formatTime(label as string)}
+                contentStyle={{
+                  backgroundColor: 'var(--glass-bg)',
+                  backdropFilter: 'var(--backdrop-blur)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--glass-border)',
+                  boxShadow: 'var(--glass-shadow)'
+                }}
+              />
+              <Legend wrapperStyle={{ paddingTop: '10px' }} />
+              <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp (°C)" stroke="var(--color-temp)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-temp)', stroke: 'white' }} />
+              <Line yAxisId="right" type="monotone" dataKey="humidity" name="Humidity (%)" stroke="var(--color-hum)" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: 'var(--color-hum)', stroke: 'white' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
