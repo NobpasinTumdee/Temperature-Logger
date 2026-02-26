@@ -86,12 +86,12 @@ function App() {
       if (currentData) setData(currentData);
       if (currentError) console.error("Error fetching current data:", currentError);
 
-      // 2. ดึงข้อมูลสถิติรายชั่วโมง (24 ชั่วโมงล่าสุด)
+      // 2. ดึงข้อมูลสถิติรายชั่วโมง (168 ชั่วโมงล่าสุด)
       const { data: logData, error: logError } = await supabase
         .from('hourly_log')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(24);
+        .limit(168);
 
       if (logData) setHourlyLogs(logData.reverse());
       if (logError) console.error("Error fetching hourly logs:", logError);
@@ -171,7 +171,7 @@ function App() {
 
         {/* Hourly Chart Section */}
         <div className="chart-section glass-panel fade-in-up delay-2">
-          <h2>Hourly Trends (24h)</h2>
+          <h2>Hourly Trends (7 days)</h2>
           <div className="chart-wrapper">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={hourlyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
